@@ -542,9 +542,37 @@ and how many emails were rescheduled.
 * **Demoing it.** *Test alert* in the dashboard sends the real alert message
   through the real path immediately.
 
-Slack app setup: create an app at <https://api.slack.com/apps>, add the
-`incoming-webhook` and `chat:write` bot scopes, and add
-`http://localhost:4000/api/slack/oauth/callback` as a redirect URL.
+### Slack app setup — note the HTTPS requirement
+
+Slack will not accept a plain-HTTP redirect URL, and makes no exception for
+localhost: *"The `redirect_uri` must use HTTPS."* So running the service on
+`http://localhost:4000` is not enough on its own — the callback has to be
+reachable over HTTPS.
+
+The simplest way to do that locally is a tunnel:
+
+```bash
+ngrok http 4000
+```
+
+Then:
+
+1. Create an app at <https://api.slack.com/apps> (*From scratch*).
+2. **OAuth & Permissions** -> *Bot Token Scopes* -> add `incoming-webhook` and
+   `chat:write`.
+3. Same page -> *Redirect URLs* -> add
+   `https://<your-tunnel>.ngrok-free.app/api/slack/oauth/callback`.
+4. **Basic Information** -> copy the Client ID and Client Secret into
+   `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET`.
+5. Set `BACKEND_URL` to that same tunnel origin — it is what builds the
+   `redirect_uri`, so it has to match what Slack has registered exactly.
+
+Leave `FRONTEND_URL` and the frontend's `NEXT_PUBLIC_API_URL` on localhost; only
+the OAuth callback goes through the tunnel. A free tunnel URL changes every time
+it restarts, so if it does, update both Slack and `BACKEND_URL` again.
+
+If the service is hosted somewhere with a real HTTPS origin, none of this
+applies — register `https://<your-host>/api/slack/oauth/callback` directly.
 
 ---
 
